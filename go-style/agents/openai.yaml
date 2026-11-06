@@ -1,0 +1,4 @@
+interface:
+  display_name: "Go Style"
+  short_description: "Write simple, standard-library-inspired Go"
+  default_prompt: "Use $go-style to implement this change with simple, standard-library-inspired Go."
