@@ -18,6 +18,18 @@ Use concrete nouns and verbs. Describe what the package does without selling its
 simplicity, listing every feature, or narrating the implementation. Internal
 package comments should help maintainers.
 
+Do not use "one" when "a" will do:
+
+```go
+// framer reads and writes frames for a connection.
+```
+
+Not:
+
+```go
+// framer reads and writes frames for one connection.
+```
+
 ## Declaration comments
 
 Begin with the declaration's name and operation. Add the facts that change how
