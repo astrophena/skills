@@ -11,9 +11,9 @@ recipe and any loaded `.star` files before changing tasks or running commands.
 
 ## Recipe model
 
-Top-level code should inspect the host and register tasks with `task(...)`.
-Task functions emit actions through modules such as `fs`, `pkg`, `pacman`,
-`git`, `go`, `systemd`, and `ssh`. `boot plan` checks those actions; `boot apply`
+Top-level code should inspect the host and register tasks with `task(...)`. Task
+functions emit actions through modules such as `fs`, `pkg`, `pacman`, `git`,
+`go`, `systemd`, and `ssh`. `boot plan` checks those actions; `boot apply`
 performs needed changes. Keep top-level code free of host mutations.
 
 Give tasks stable IDs. Use `depends_on` for real ordering requirements, `when`
@@ -39,8 +39,8 @@ task(id="setup_packages", name="Install packages", run=setup_packages)
 
 Preserve existing `consent.require(...)` calls unless the user asks to change
 the policy. Do not hide warnings or discard dirty Git checkouts to make a plan
-look clean. Treat `/etc`, `/usr`, `/boot`, `/efi`, system units, package updates,
-and rescue images as host-sensitive changes.
+look clean. Treat `/etc`, `/usr`, `/boot`, `/efi`, system units, package
+updates, and rescue images as host-sensitive changes.
 
 ## Work with a recipe
 
