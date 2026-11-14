@@ -30,6 +30,10 @@ Before use:
 
 ## Testing and fixtures
 
+Choose tests using the
+[main skill's testing guidance](../SKILL.md#test-behavior), then reuse these
+helpers where they simplify the test.
+
 | Need                                        | Package         | Guidance                                                                                                                                                                  |
 | ------------------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Diffs, golden files, JSON, and HTTP clients | `base/testutil` | Prefer `AssertEqual`, `Run`, `RunGolden`, `BuildTxtar`, `ExtractTxtar`, `UnmarshalJSON`, and `MockHTTPClient` to equivalent local plumbing. Keep golden updates explicit. |

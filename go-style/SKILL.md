@@ -299,49 +299,68 @@ easily than remove it.
 
 ## Test behavior
 
-Test observable behavior at stable boundaries. Use a table when cases share the
-same setup and assertion—not by reflex. When cases are independent and order is
-irrelevant, prefer `cases := map[string]struct { ... }` and
-`for name, tc := range cases`:
+Write the fewest tests that give confidence in the behavior being changed. Every
+added test should catch a plausible failure. Inspect existing coverage first;
+extend an existing test when it can express the behavior. Test observable
+behavior at stable boundaries. Add a focused regression test when it protects
+against a meaningful bug that existing tests do not cover.
 
-```go
-func TestParsePort(t *testing.T) {
-	cases := map[string]struct {
-		in   string
-		want int
-	}{
-		"http":        {in: "80", want: 80},
-		"development": {in: "8080", want: 8080},
-	}
+Skip new tests for trivial accessors, mechanical refactors, implementation
+details, and behavior already covered. Choose representative cases with distinct
+failure modes. Avoid speculative edge-case matrices and coverage targets.
 
-	for name, tc := range cases {
-		t.Run(name, func(t *testing.T) {
-			got, err := ParsePort(tc.in)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if got != tc.want {
-				t.Fatalf("ParsePort(%q) = %d; want %d", tc.in, got, tc.want)
-			}
-		})
-	}
-}
-```
+Use a table when cases share the same setup and assertion. When cases are
+independent and order is irrelevant, prefer `cases := map[string]struct { ... }`
+and `for name, tc := range cases`.
 
-Use `t.Parallel()` only when the test and its subtests share no mutable state,
-environment, working directory, fixture, or golden output target.
-
-For non-trivial text transformations, generated output, or filesystem behavior,
-default to a hand-editable `testdata/name.txtar` input paired with a
-`testdata/name.golden` result. Keep output deterministic and updates explicit;
-review the diff, then rerun without the update flag. Use direct assertions for
-small scalar behavior. When the project uses `base`, follow
-[references/base-packages.md](references/base-packages.md).
+Once a test is justified, default to a hand-editable `testdata/name.txtar` input
+paired with a `testdata/name.golden` result for non-trivial text
+transformations, generated output, or filesystem behavior. Keep output
+deterministic and updates explicit; review the diff, then rerun without the
+update flag. Use direct assertions for small scalar behavior. When the project
+uses `base`, follow [references/base-packages.md](references/base-packages.md).
 
 Use `t.Helper()` in assertion helpers, `t.TempDir()` for filesystem tests, and
-`testdata` for fixtures. Prefer small fakes to interaction-heavy mocks. Do not
-wait for concurrency with arbitrary sleeps; synchronize on the event under test.
-Add a regression test for a bug when practical.
+`testdata` for fixtures. Prefer small fakes to interaction-heavy mocks. Reuse
+existing helpers; avoid introducing interfaces or test frameworks solely for
+tests.
+
+Treat test speed as a design constraint. Aim for ordinary tests to execute in
+milliseconds, without machine-dependent timing assertions. Prefer in-process
+calls, in-memory data, and small fixtures. Use external services or subprocesses
+only when their boundary is the behavior under test. Avoid real sleeps and
+polling for concurrent work; synchronize on the event under test.
+
+On Go 1.25+, prefer [`testing/synctest`](https://pkg.go.dev/testing/synctest)
+for time-dependent and asynchronous tests that can run entirely in process. Use
+`synctest.Test` for an isolated bubble and `synctest.Wait` to let other
+goroutines finish or become durably blocked before inspecting results. Inside
+the bubble, `time.Sleep` uses fake time: use it to reach a deadline, then
+synchronize before asserting. This timer callback illustrates the pattern:
+
+```go
+synctest.Test(t, func(t *testing.T) {
+	fired := false
+	time.AfterFunc(time.Second, func() { fired = true })
+
+	time.Sleep(time.Second) // Advances fake time without a real wait.
+	synctest.Wait()
+	if !fired {
+		t.Fatal("timer callback did not run")
+	}
+})
+```
+
+Create relevant goroutines, channels, and timers inside the bubble. `Wait` can
+return with workers still blocked; cancel and join background work before
+leaving. Real network and process I/O can prevent fake time from advancing; use
+in-process fakes where appropriate. Put `t.Run` and `t.Parallel` outside the
+callback. Prefer `synctest` to adding test-only clock abstractions. On older Go
+versions, use explicit synchronization and preserve the module's version.
+
+Use `t.Parallel()` when it reduces runtime and the test and its subtests share
+no mutable state, environment, working directory, fixture, or golden output
+target.
 
 ## Document and finish
 
@@ -363,8 +382,11 @@ func Parse(src []byte) (*Tree, error)
 
 Run `gofmt` on changed Go files. While iterating, run the narrowest relevant
 test; before handoff, run the repository-prescribed checks, commonly
-`go test ./...` and `go vet ./...`. Use `go test -race` when concurrency changes
-and the repository supports it. Report checks that could not run.
+`go test ./...` and `go vet ./...`. Use `go test -race` for affected packages
+when concurrency changes and the repository supports it; broaden the run when
+repository instructions or the affected behavior warrant it. Once checks pass,
+repeat or broaden them only for new changes, failures, or unresolved concerns.
+Report checks that could not run.
 
 Use current standard-library features only when the module version permits
 them—for example `slices` (Go 1.21), enhanced `http.ServeMux` patterns (Go
